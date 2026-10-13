@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shaakuni Early Signal + Telegram Bot</title>
+    <style>
+        :root {
+            --bg-primary: #0b0e11;
+            --bg-secondary: #12161c;
+            --bg-card: #1a1f27;
+            --border: #2a2e39;
+            --text-primary: #eaecef;
+            --text-secondary: #848e9c;
+            --green: #0ecb81;
+            --red: #f6465d;
+            --blue: #3861fb;
+            --yellow: #f0b90b;
+            --orange: #f7931a;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--yellow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .logo span {
+            color: var(--text-secondary);
+            font-weight: 400;
+            font-size: 0.8rem;
+        }
+        .market-tabs { display: flex; gap: 8px; }
+        .tab {
+            padding: 7px 15px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.87rem;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+        .tab:hover, .tab.active {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
+        }
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 16px;
+            padding: 16px;
+            max-width: 1700px;
+            margin: 0 auto;
+        }
+        .chart-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .chart-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .symbol-select {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            min-width: 150px;
+        }
+        .timeframes { display: flex; gap: 6px; }
+        .tf-btn {
+            padding: 6px 11px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .tf-btn.active {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
+        }
+        #tv-chart { height: 600px; width: 100%; }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-body { padding: 14px 16px; }
+        .signal-box { text-align: center; padding: 14px 8px; }
+        .signal-status {
+            font-size: 1.7rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .signal-buy { color: var(--green); }
+        .signal-sell { color: var(--red); }
+        .signal-wait { color: var(--text-secondary); }
+        .signal-bot { color: var(--orange); animation: pulse 1.4s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.65; }
+        }
+        .signal-desc {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+        .signal-strength {
+            height: 6px;
+            background: var(--bg-card);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .signal-strength-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.4s;
+        }
+        .bot-alert {
+            background: linear-gradient(135deg, rgba(247, 147, 26, 0.18), rgba(247, 147, 26, 0.05));
+            border: 1px solid var(--orange);
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 12px;
+            display: none;
+        }
+        .bot-alert.show { display: block; }
+        .bot-alert-title {
+            font-weight: 700;
+            color: var(--orange);
+            font-size: 0.92rem;
+            margin-bottom: 5px;
+        }
+        .tg-settings input {
+            width: 100%;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 9px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
+        .tg-settings input:focus {
+            outline: none;
+            border-color: var(--blue);
+        }
+        .tg-status {
+            font-size: 0.8rem;
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-top: 6px;
+        }
+        .tg-connected {
+            background: rgba(14, 203, 129, 0.12);
+            color: var(--green);
+        }
+        .tg-disconnected {
+            background: rgba(246, 70, 93, 0.12);
+            color: var(--red);
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: 0.2s;
+        }
+        .btn-primary {
+            background: var(--blue);
+            color: white;
+        }
+        .btn-primary:hover { opacity: 0.9; }
+        .btn-test {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            margin-top: 8px;
+        }
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 9px;
+        }
+        .ind-item {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 9px 11px;
+        }
+        .ind-label {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            margin-bottom: 3px;
+        }
+        .ind-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .bullish { color: var(--green); }
+        .bearish { color: var(--red); }
+        .neutral { color: var(--yellow); }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.82rem;
+        }
+        .history-item:last-child { border-bottom: none; }
+        .badge {
+            padding: 3px 9px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+        .badge-buy { background: rgba(14, 203, 129, 0.15); color: var(--green); }
+        .badge-sell { background: rgba(246, 70, 93, 0.15); color: var(--red); }
+        .badge-bot { background: rgba(247, 147, 26, 0.2); color: var(--orange); }
+        .note {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 10px 12px;
+            line-height: 1.5;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        @media (max-width: 1150px) {
+            .main { grid-template-columns: 1fr; }
+            #tv-chart { height: 480px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            Shaakuni Bot
+            <span>Stable Signal Mode</span>
+        </div>
+        <div class="market-tabs">
+            <div class="tab active" data-market="crypto">Kripto</div>
+            <div class="tab" data-market="forex">Forex + Gold</div>
+            <div class="tab" data-market="stocks">Aktsiyalar</div>
+        </div>
+    </header>
+
+    <div class="main">
+        <div class="chart-section">
+            <div class="chart-header">
+                <select class="symbol-select" id="symbolSelect">
+                    <option value="BINANCE:BTCUSDT">BTC/USDT</option>
+                    <option value="BINANCE:ETHUSDT">ETH/USDT</option>
+                    <option value="BINANCE:SOLUSDT">SOL/USDT</option>
+                    <option value="BINANCE:BNBUSDT">BNB/USDT</option>
+                    <option value="BINANCE:XRPUSDT">XRP/USDT</option>
+                </select>
+                <div class="timeframes">
+                    <div class="tf-btn" data-tf="5">5m</div>
+                    <div class="tf-btn active" data-tf="15">15m</div>
+                    <div class="tf-btn" data-tf="60">1H</div>
+                    <div class="tf-btn" data-tf="240">4H</div>
+                    <div class="tf-btn" data-tf="D">1D</div>
+                </div>
+            </div>
+            <div id="tv-chart"></div>
+        </div>
+
+        <div class="sidebar">
+            <div class="card">
+                <div class="card-header">Telegram Bot Sozlamalari</div>
+                <div class="card-body tg-settings">
+                    <input type="text" id="botToken" placeholder="Bot Token (BotFather dan)" autocomplete="off">
+                    <input type="text" id="chatId" placeholder="Chat ID" autocomplete="off">
+                    <button class="btn btn-primary" onclick="saveTelegramSettings()">Saqlash</button>
+                    <button class="btn btn-test" onclick="testTelegram()">Test xabar yuborish</button>
+                    <div id="tgStatus" class="tg-status tg-disconnected">Telegram ulanmagan</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    Barqaror Signal
+                    <span style="font-size: 0.76rem; color: var(--text-secondary);" id="signalTime">--:--</span>
+                </div>
+                <div class="card-body">
+                    <div class="signal-box">
+                        <div class="signal-status signal-wait" id="mainSignal">KUTILMOQDA</div>
+                        <div class="signal-desc" id="signalDesc">Signal barqarorligi saqlanmoqda...</div>
+                        <div class="signal-strength">
+                            <div class="signal-strength-bar" id="strengthBar" style="width: 0%; background: var(--text-secondary);"></div>
+                        </div>
+                        <div class="bot-alert" id="botAlert">
+                            <div class="bot-alert-title">TELEGRAMGA YUBORILDI</div>
+                            <div style="font-size: 0.81rem; color: var(--text-secondary);" id="botAlertText"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Indikatorlar</div>
+                <div class="card-body">
+                    <div class="indicators-grid" id="indicatorsGrid"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Telegramga yuborilganlar</div>
+                <div class="card-body" id="botHistory">
+                    <div style="color: var(--text-secondary); font-size: 0.84rem; text-align: center;">Hali yuborilmagan</div>
+                </div>
+            </div>
+
+            <div class="note">
+                Signallar endi barqaror.<br>
+                Bir marta chiqqan signal bir necha daqiqa ushlab turiladi, har shamda o‘zgarmaydi.
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <script>
+        let widget = null;
+        let currentInterval = "15";
+        let botSignals = [];
+        let lastBotSignalTime = 0;
+        let tgToken = "";
+        let tgChatId = "";
+
+        // ========== BARQAROR SIGNAL TIZIMI ==========
+        let currentStableSignal = "WAIT";   // Hozirgi asosiy signal
+        let signalHoldCounter = 0;          // Necha marta ushlab turilgan
+        let oppositeCount = 0;              // Teskari signal necha marta ketma-ket chiqdi
+        const HOLD_TIME = 5;                // Signal kamida 5 marta yangilanish ushlab turiladi (~75 soniya)
+        const OPPOSITE_NEEDED = 3;          // Teskari signal uchun 3 marta ketma-ket kerak
+
+        function saveTelegramSettings() {
+            tgToken = document.getElementById("botToken").value.trim();
+            tgChatId = document.getElementById("chatId").value.trim();
+            updateTgStatus();
+            alert("Sozlamalar saqlandi!");
+        }
+
+        function updateTgStatus() {
+            const statusEl = document.getElementById("tgStatus");
+            if (tgToken && tgChatId) {
+                statusEl.textContent = "Telegram ulangan ✓";
+                statusEl.className = "tg-status tg-connected";
+            } else {
+                statusEl.textContent = "Telegram ulanmagan";
+                statusEl.className = "tg-status tg-disconnected";
+            }
+        }
+
+        async function sendToTelegram(message) {
+            if (!tgToken || !tgChatId) return false;
+            try {
+                const url = `https://api.telegram.org/bot${tgToken}/sendMessage`;
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        chat_id: tgChatId,
+                        text: message,
+                        parse_mode: "HTML"
+                    })
+                });
+                const data = await response.json();
+                return data.ok;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async function testTelegram() {
+            const ok = await sendToTelegram("Shaakuni Bot test xabari.\nUlanish muvaffaqiyatli!");
+            alert(ok ? "Test xabar yuborildi!" : "Xatolik! Token yoki Chat ID ni tekshiring.");
+        }
+
+        function createChart(symbol) {
+            if (widget) {
+                try { widget.remove(); } catch(e) {}
+            }
+            widget = new TradingView.widget({
+                container_id: "tv-chart",
+                autosize: true,
+                symbol: symbol,
+                interval: currentInterval,
+                timezone: "Asia/Tashkent",
+                theme: "dark",
+                style: "1",
+                locale: "en",
+                toolbar_bg: "#12161c",
+                enable_publishing: false,
+                hide_top_toolbar: false,
+                studies: [
+                    "RSI@tv-basicstudies",
+                    "MACD@tv-basicstudies",
+                    "BB@tv-basicstudies",
+                    "StochasticRSI@tv-basicstudies"
+                ],
+                backgroundColor: "#0b0e11",
+                gridColor: "#1a1f27",
+                overrides: {
+                    "mainSeriesProperties.candleStyle.upColor": "#0ecb81",
+                    "mainSeriesProperties.candleStyle.downColor": "#f6465d",
+                    "mainSeriesProperties.candleStyle.borderUpColor": "#0ecb81",
+                    "mainSeriesProperties.candleStyle.borderDownColor": "#f6465d",
+                    "mainSeriesProperties.candleStyle.wickUpColor": "#0ecb81",
+                    "mainSeriesProperties.candleStyle.wickDownColor": "#f6465d"
+                }
+            });
+        }
+
+        function generateData() {
+            const rsi = +(Math.random() * 70 + 15).toFixed(1);
+            const stoch = +(Math.random() * 100).toFixed(1);
+            const atr = +(Math.random() * 2.5 + 0.5).toFixed(2);
+            const bbWidth = +(Math.random() * 0.07 + 0.015).toFixed(3);
+            const macdHist = +(Math.random() * 1.6 - 0.8).toFixed(3);
+            const volumeRatio = +(Math.random() * 2.0 + 0.5).toFixed(2);
+
+            let orderBlock = "Yo‘q";
+            let liquidity = "Yo‘q";
+            let obClass = "neutral";
+            let liqClass = "neutral";
+
+            const isSqueeze = bbWidth < 0.028;
+            const isLowVol = atr < 1.2;
+
+            if (rsi < 30 && stoch < 22) {
+                orderBlock = "Bullish OB";
+                liquidity = "Likvidlik olingan";
+                obClass = "bullish";
+                liqClass = "bullish";
+            } else if (rsi > 70 && stoch > 78) {
+                orderBlock = "Bearish OB";
+                liquidity = "Likvidlik olingan";
+                obClass = "bearish";
+                liqClass = "bearish";
+            } else if (isSqueeze && (rsi < 36 || rsi > 64)) {
+                orderBlock = "Potensial OB";
+                liquidity = "Tayyorlanmoqda";
+                obClass = rsi < 45 ? "bullish" : "bearish";
+            }
+
+            return { rsi, stoch, atr, bbWidth, macdHist, volumeRatio, orderBlock, liquidity, obClass, liqClass, isSqueeze, isLowVol };
+        }
+
+        function calculateRawSignal(data) {
+            let score = 0;
+            let reasons = [];
+
+            if (data.isSqueeze) { score += 2.5; reasons.push("Bollinger siqilishi"); }
+            if (data.isLowVol) { score += 1.2; reasons.push("Past volatillik"); }
+
+            if (data.rsi < 28) { score += 2.0; reasons.push("RSI past"); }
+            else if (data.rsi > 72) { score -= 2.0; reasons.push("RSI yuqori"); }
+
+            if (data.stoch < 18) { score += 1.4; reasons.push("Stoch oversold"); }
+            else if (data.stoch > 82) { score -= 1.4; reasons.push("Stoch overbought"); }
+
+            if (data.macdHist > 0.25) score += 1.0;
+            else if (data.macdHist < -0.25) score -= 1.0;
+
+            if (data.volumeRatio > 1.6) { score += 1.2; reasons.push("Hajm oshgan"); }
+
+            if (data.orderBlock.includes("Bullish")) { score += 2.8; reasons.push("Bullish Order Block"); }
+            else if (data.orderBlock.includes("Bearish")) { score -= 2.8; reasons.push("Bearish Order Block"); }
+
+            if (data.liquidity.includes("olingan")) {
+                score += data.orderBlock.includes("Bullish") ? 1.5 : -1.5;
+                reasons.push("Likvidlik grab");
+            }
+
+            let signal = "WAIT";
+            let strength = Math.min(Math.abs(score) * 11, 100);
+
+            if (score >= 5.8) signal = "BUY";
+            else if (score <= -5.8) signal = "SELL";
+            else if (Math.abs(score) >= 4.2 && data.isSqueeze) {
+                signal = score > 0 ? "BUY" : "SELL";
+                strength = Math.max(strength, 68);
+            }
+
+            return { signal, score, strength, reasons };
+        }
+
+        async function updateUI() {
+            const data = generateData();
+            const raw = calculateRawSignal(data);
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+            const symbol = document.getElementById("symbolSelect").value.split(":")[1] || "BTCUSDT";
+
+            document.getElementById("signalTime").textContent = timeStr;
+
+            // ========== BARQAROR SIGNAL MANTIG‘I ==========
+            if (currentStableSignal === "WAIT") {
+                // Hali signal yo‘q → yangi signalni qabul qilamiz
+                if (raw.signal !== "WAIT") {
+                    currentStableSignal = raw.signal;
+                    signalHoldCounter = 1;
+                    oppositeCount = 0;
+                }
+            } else {
+                // Allaqachon signal bor
+                if (raw.signal === currentStableSignal) {
+                    // Bir xil signal davom etmoqda
+                    signalHoldCounter++;
+                    oppositeCount = 0;
+                } else if (raw.signal === "WAIT") {
+                    // Vaqtinchalik WAIT — e’tiborsiz qoldiramiz
+                    oppositeCount = 0;
+                } else {
+                    // Teskari signal chiqdi
+                    oppositeCount++;
+                    if (oppositeCount >= OPPOSITE_NEEDED && signalHoldCounter >= HOLD_TIME) {
+                        // Yetarli vaqt o‘tdi + 3 marta teskari → o‘zgartiramiz
+                        currentStableSignal = raw.signal;
+                        signalHoldCounter = 1;
+                        oppositeCount = 0;
+                    }
+                }
+            }
+
+            const isBotSignal = (currentStableSignal === "BUY" || currentStableSignal === "SELL") && raw.strength >= 70;
+
+            // UI
+            const mainSignal = document.getElementById("mainSignal");
+            const signalDesc = document.getElementById("signalDesc");
+            const strengthBar = document.getElementById("strengthBar");
+            const botAlert = document.getElementById("botAlert");
+            const botAlertText = document.getElementById("botAlertText");
+
+            if (isBotSignal) {
+                mainSignal.textContent = currentStableSignal === "BUY" ? "BOT: SOTIB OL" : "BOT: SOTISH";
+                mainSignal.className = "signal-status signal-bot";
+                strengthBar.style.background = "var(--orange)";
+                botAlert.classList.add("show");
+                botAlertText.textContent = currentStableSignal === "BUY" 
+                    ? "Keskin KO‘TARILISH (barqaror signal)" 
+                    : "Keskin TUSHISH (barqaror signal)";
+            } else if (currentStableSignal === "BUY") {
+                mainSignal.textContent = "SOTIB OL";
+                mainSignal.className = "signal-status signal-buy";
+                strengthBar.style.background = "var(--green)";
+                botAlert.classList.remove("show");
+            } else if (currentStableSignal === "SELL") {
+                mainSignal.textContent = "SOTISH";
+                mainSignal.className = "signal-status signal-sell";
+                strengthBar.style.background = "var(--red)";
+                botAlert.classList.remove("show");
+            } else {
+                mainSignal.textContent = "KUTILMOQDA";
+                mainSignal.className = "signal-status signal-wait";
+                strengthBar.style.background = "var(--text-secondary)";
+                botAlert.classList.remove("show");
+            }
+
+            strengthBar.style.width = raw.strength + "%";
+
+            let desc = raw.reasons.length ? raw.reasons.slice(0, 3).join(" • ") : "Kuchli shartlar yo‘q";
+            if (currentStableSignal !== "WAIT") {
+                desc += ` | Ushlab turilmoqda (${signalHoldCounter})`;
+            }
+            signalDesc.textContent = desc;
+
+            // Indikatorlar
+            document.getElementById("indicatorsGrid").innerHTML = `
+                <div class="ind-item"><div class="ind-label">RSI</div><div class="ind-value ${data.rsi < 30 ? 'bullish' : data.rsi > 70 ? 'bearish' : 'neutral'}">${data.rsi}</div></div>
+                <div class="ind-item"><div class="ind-label">Stochastic</div><div class="ind-value ${data.stoch < 20 ? 'bullish' : data.stoch > 80 ? 'bearish' : 'neutral'}">${data.stoch}</div></div>
+                <div class="ind-item"><div class="ind-label">BB Siqilishi</div><div class="ind-value ${data.isSqueeze ? 'bullish' : 'neutral'}">${data.isSqueeze ? 'HA' : 'Yo‘q'}</div></div>
+                <div class="ind-item"><div class="ind-label">ATR</div><div class="ind-value neutral">${data.atr}</div></div>
+                <div class="ind-item"><div class="ind-label">MACD</div><div class="ind-value ${data.macdHist > 0 ? 'bullish' : 'bearish'}">${data.macdHist}</div></div>
+                <div class="ind-item"><div class="ind-label">Volume</div><div class="ind-value ${data.volumeRatio > 1.5 ? 'bullish' : 'neutral'}">${data.volumeRatio}x</div></div>
+                <div class="ind-item"><div class="ind-label">Order Block</div><div class="ind-value ${data.obClass}">${data.orderBlock}</div></div>
+                <div class="ind-item"><div class="ind-label">Likvidlik</div><div class="ind-value ${data.liqClass}">${data.liquidity}</div></div>
+            `;
+
+            // Telegram
+            if (isBotSignal && (Date.now() - lastBotSignalTime > 90000)) {
+                lastBotSignalTime = Date.now();
+
+                const direction = currentStableSignal === "BUY" ? "SOTIB OL" : "SOTISH";
+                const emoji = currentStableSignal === "BUY" ? "🟢" : "🔴";
+
+                const message = `
+${emoji} <b>SHAAKUNI STABLE SIGNAL</b> ${emoji}
+
+📌 <b>Juftlik:</b> ${symbol}
+📊 <b>Signal:</b> ${direction}
+💪 <b>Kuch:</b> ${raw.strength.toFixed(0)}%
+🔒 <b>Holat:</b> Barqaror
+⏰ <b>Vaqt:</b> ${timeStr}
+
+${raw.reasons.slice(0, 3).join(" | ")}
+                `.trim();
+
+                const sent = await sendToTelegram(message);
+                if (sent) {
+                    botSignals.unshift({
+                        symbol,
+                        signal: currentStableSignal,
+                        time: timeStr,
+                        strength: raw.strength.toFixed(0)
+                    });
+                    if (botSignals.length > 8) botSignals.pop();
+                }
+            }
+
+            // Tarix
+            const botHistoryEl = document.getElementById("botHistory");
+            if (botSignals.length === 0) {
+                botHistoryEl.innerHTML = `<div style="color: var(--text-secondary); font-size: 0.84rem; text-align: center;">Hali yuborilmagan</div>`;
+            } else {
+                botHistoryEl.innerHTML = botSignals.map(item => `
+                    <div class="history-item">
+                        <span>${item.symbol}</span>
+                        <span class="badge badge-bot">${item.signal}</span>
+                        <span style="color: var(--text-secondary);">${item.time}</span>
+                    </div>
+                `).join("");
+            }
+        }
+
+        // Eventlar
+        document.getElementById("symbolSelect").addEventListener("change", function() {
+            createChart(this.value);
+            currentStableSignal = "WAIT";
+            signalHoldCounter = 0;
+            oppositeCount = 0;
+            updateUI();
+        });
+
+        document.querySelectorAll(".tab").forEach(tab => {
+            tab.addEventListener("click", function() {
+                document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+                this.classList.add("active");
+                const market = this.dataset.market;
+                const select = document.getElementById("symbolSelect");
+
+                if (market === "crypto") {
+                    select.innerHTML = `
+                        <option value="BINANCE:BTCUSDT">BTC/USDT</option>
+                        <option value="BINANCE:ETHUSDT">ETH/USDT</option>
+                        <option value="BINANCE:SOLUSDT">SOL/USDT</option>
+                        <option value="BINANCE:BNBUSDT">BNB/USDT</option>
+                        <option value="BINANCE:XRPUSDT">XRP/USDT</option>`;
+                } else if (market === "forex") {
+                    select.innerHTML = `
+                        <option value="FX:EURUSD">EUR/USD</option>
+                        <option value="FX:GBPUSD">GBP/USD</option>
+                        <option value="FX:USDJPY">USD/JPY</option>
+                        <option value="FX:AUDUSD">AUD/USD</option>
+                        <option value="OANDA:XAUUSD">GOLD (XAUUSD)</option>
+                        <option value="TVC:GOLD">GOLD (TVC)</option>`;
+                } else {
+                    select.innerHTML = `
+                        <option value="NASDAQ:AAPL">AAPL</option>
+                        <option value="NASDAQ:TSLA">TSLA</option>
+                        <option value="NASDAQ:NVDA">NVDA</option>
+                        <option value="NASDAQ:AMZN">AMZN</option>
+                        <option value="NASDAQ:MSFT">MSFT</option>`;
+                }
+                createChart(select.value);
+                currentStableSignal = "WAIT";
+                signalHoldCounter = 0;
+                oppositeCount = 0;
+                updateUI();
+            });
+        });
+
+        document.querySelectorAll(".tf-btn").forEach(btn => {
+            btn.addEventListener("click", function() {
+                document.querySelectorAll(".tf-btn").forEach(b => b.classList.remove("active"));
+                this.classList.add("active");
+                currentInterval = this.dataset.tf;
+                createChart(document.getElementById("symbolSelect").value);
+            });
+        });
+
+        // Ishga tushirish
+        createChart("BINANCE:BTCUSDT");
+        updateUI();
+        setInterval(updateUI, 15000);
+    </script>
+</body>
+</html>
